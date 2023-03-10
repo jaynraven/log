@@ -20,11 +20,11 @@ enum LOG_LEVEL
 };
 
 // 定义日志接口宏
-#define LOG_DEBUG(format, ...) Log::getInstance()->write(LOG_LEVEL_DEBUG, __FILE__, __LINE__, format, ##__VA_ARGS__)
-#define LOG_INFO(format, ...) Log::getInstance()->write(LOG_LEVEL_INFO, __FILE__, __LINE__, format, ##__VA_ARGS__)
-#define LOG_WARN(format, ...) Log::getInstance()->write(LOG_LEVEL_WARN, __FILE__, __LINE__, format, ##__VA_ARGS__)
-#define LOG_ERROR(format, ...) Log::getInstance()->write(LOG_LEVEL_ERROR, __FILE__, __LINE__, format, ##__VA_ARGS__)
-#define LOG_CRITICAL(format, ...) Log::getInstance()->write(LOG_LEVEL_CRITICAL, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_DEBUG(format, ...) Log::getInstance().write(LOG_LEVEL_DEBUG, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_INFO(format, ...) Log::getInstance().write(LOG_LEVEL_INFO, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_WARN(format, ...) Log::getInstance().write(LOG_LEVEL_WARN, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_ERROR(format, ...) Log::getInstance().write(LOG_LEVEL_ERROR, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_CRITICAL(format, ...) Log::getInstance().write(LOG_LEVEL_CRITICAL, __FILE__, __LINE__, format, ##__VA_ARGS__)
 
 std::string filename;
 LOG_LEVEL log_level;
@@ -38,7 +38,7 @@ void init_log(const std::string& filename_in, const LOG_LEVEL& log_level_in)
 class Log {
 private:
     FILE* file_;  // 文件指针
-    static Log* instance_;  // 单例指针
+    // static Log* instance_;  // 单例指针
     static std::mutex mtx_;  // 互斥锁
 
     // 禁止复制构造函数
@@ -54,22 +54,24 @@ private:
 public:
 
     // 获取单例对象
-    static Log* getInstance() {
-        if (instance_ == nullptr) {
-            std::lock_guard<std::mutex> lock(mtx_);
-            if (instance_ == nullptr) {
-                instance_ = new Log();
-            }
-        }
-        return instance_;
+    static Log& getInstance() {
+        static Log instance;
+        return instance;
+        // if (instance_ == nullptr) {
+        //     std::lock_guard<std::mutex> lock(mtx_);
+        //     if (instance_ == nullptr) {
+        //         instance_ = new Log();
+        //     }
+        // }
+        // return instance_;
     }
 
-    static void destroy() {
-		if (instance_ != nullptr) {
-			delete instance_;
-            instance_ = nullptr;
-        }
-    }
+    // static void destroy() {
+	// 	if (instance_ != nullptr) {
+	// 		delete instance_;
+    //         instance_ = nullptr;
+    //     }
+    // }
 
     // 写入日志
     void write(int level, const char* file, int line, const char* format, ...) {
@@ -134,13 +136,13 @@ public:
         mtx_.unlock();
     }
 
-    // 私有析构函数
-    ~Log() {
-        if (file_ != nullptr)
-            fclose(file_);
-    }
+    // // 私有析构函数
+    // ~Log() {
+    //     if (file_ != nullptr)
+    //         fclose(file_);
+    // }
 };
 
 // 静态初始化单例对象
 std::mutex Log::mtx_;
-Log* Log::instance_ = nullptr;
+// Log* Log::instance_ = nullptr;

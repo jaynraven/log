@@ -12,7 +12,7 @@ int main() {
 	LOG_CRITICAL("This is a critical message");
 
     // 销毁单例对象
-    Log::destroy();
+    // Log::destroy();
 	
 	system("pause");
 	return 0;
