@@ -27,17 +27,18 @@ enum LOG_MODE
 };
 
 // 定义日志接口宏
-#define LOG_DEBUG(format, ...) Log::getInstance().write(LOG_LEVEL_DEBUG, __FILE__, __LINE__, format, ##__VA_ARGS__)
-#define LOG_INFO(format, ...) Log::getInstance().write(LOG_LEVEL_INFO, __FILE__, __LINE__, format, ##__VA_ARGS__)
-#define LOG_WARN(format, ...) Log::getInstance().write(LOG_LEVEL_WARN, __FILE__, __LINE__, format, ##__VA_ARGS__)
-#define LOG_ERROR(format, ...) Log::getInstance().write(LOG_LEVEL_ERROR, __FILE__, __LINE__, format, ##__VA_ARGS__)
-#define LOG_CRITICAL(format, ...) Log::getInstance().write(LOG_LEVEL_CRITICAL, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_DEBUG(format, ...) Log::getInstance().write(LOG_LEVEL_DEBUG, __FUNCTION__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_INFO(format, ...) Log::getInstance().write(LOG_LEVEL_INFO, __FUNCTION__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_WARN(format, ...) Log::getInstance().write(LOG_LEVEL_WARN, __FUNCTION__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_ERROR(format, ...) Log::getInstance().write(LOG_LEVEL_ERROR, __FUNCTION__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_CRITICAL(format, ...) Log::getInstance().write(LOG_LEVEL_CRITICAL, __FUNCTION__, __LINE__, format, ##__VA_ARGS__)
 
 std::string filename;
 LOG_LEVEL log_level;
 int log_mode;
 int logfile_max_size = 10 * 1024* 1024; //默认最大10mb，大于10mb只保留最新的日志
 
+//日志初始化
 void init_log(
 	const std::string& filename_in,
 	const int& log_mode_in,
@@ -105,7 +106,7 @@ public:
     }
 
     // 写入日志
-    void write(int level, const char* file, int line, const char* format, ...) {
+    void write(int level, const char* function, int line, const char* format, ...) {
         if (level < log_level)
             return;
 
@@ -154,7 +155,7 @@ public:
 
         // 构造日志信息
         std::string logmsg = std::string(timestamp) + " [" + loglevel + "] [" + 
-            file + ":" + std::to_string(line) + "] " + buffer + "\n";
+            function + ":" + std::to_string(line) + "] " + buffer + "\n";
 
         // 加锁
 		mtx_.lock();
