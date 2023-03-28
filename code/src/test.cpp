@@ -3,7 +3,7 @@
 // 主函数（测试）
 int main() {
 
-	init_log("testname.txt", LOG_LEVEL_ERROR);
+	init_log("testname.txt", LOG_MODE_TERMINAL | LOG_MODE_FILE, LOG_LEVEL_ERROR);
 
 	LOG_DEBUG("This is a debug message");
 	LOG_INFO("This is an info message");

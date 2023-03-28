@@ -19,6 +19,12 @@ enum LOG_LEVEL
 	LOG_LEVEL_CRITICAL
 };
 
+enum LOG_MODE
+{
+    LOG_MODE_TERMINAL = 0x01,
+    LOG_MODE_FILE = 0x02
+};
+
 // 定义日志接口宏
 #define LOG_DEBUG(format, ...) Log::getInstance().write(LOG_LEVEL_DEBUG, __FILE__, __LINE__, format, ##__VA_ARGS__)
 #define LOG_INFO(format, ...) Log::getInstance().write(LOG_LEVEL_INFO, __FILE__, __LINE__, format, ##__VA_ARGS__)
@@ -28,10 +34,12 @@ enum LOG_LEVEL
 
 std::string filename;
 LOG_LEVEL log_level;
+int log_mode;
 
-void init_log(const std::string& filename_in, const LOG_LEVEL& log_level_in)
+void init_log(const std::string& filename_in, const int& log_mode_in, const LOG_LEVEL& log_level_in)
 {
     filename = filename_in;
+    log_mode = log_mode_in;
     log_level = log_level_in;
 }
 
@@ -39,7 +47,7 @@ class Log {
 private:
     FILE* file_;  // 文件指针
     // static Log* instance_;  // 单例指针
-    static std::mutex mtx_;  // 互斥锁
+    std::mutex mtx_;  // 互斥锁
 
     // 禁止复制构造函数
     Log(Log const&);
@@ -53,25 +61,19 @@ private:
 
 public:
 
+    ~Log() {
+        if (file_ != NULL)
+		{
+			fclose(file_);
+            file_ = NULL;
+        }
+    }
+
     // 获取单例对象
     static Log& getInstance() {
         static Log instance;
         return instance;
-        // if (instance_ == nullptr) {
-        //     std::lock_guard<std::mutex> lock(mtx_);
-        //     if (instance_ == nullptr) {
-        //         instance_ = new Log();
-        //     }
-        // }
-        // return instance_;
     }
-
-    // static void destroy() {
-	// 	if (instance_ != nullptr) {
-	// 		delete instance_;
-    //         instance_ = nullptr;
-    //     }
-    // }
 
     // 写入日志
     void write(int level, const char* file, int line, const char* format, ...) {
@@ -128,21 +130,19 @@ public:
         // 加锁
         mtx_.lock();
 
-        // 写入日志
-        fwrite(logmsg.c_str(), logmsg.size(), 1, file_);
-        fflush(file_);
+        if (log_mode & LOG_MODE_FILE)
+		{
+			// 写入日志
+			fwrite(logmsg.c_str(), logmsg.size(), 1, file_);
+			fflush(file_);
+        }
+        if (log_mode & LOG_MODE_TERMINAL)
+        {
+            // 写入终端
+            printf(logmsg.c_str());
+        }
 
         // 解锁
         mtx_.unlock();
     }
-
-    // // 私有析构函数
-    // ~Log() {
-    //     if (file_ != nullptr)
-    //         fclose(file_);
-    // }
 };
-
-// 静态初始化单例对象
-std::mutex Log::mtx_;
-// Log* Log::instance_ = nullptr;
