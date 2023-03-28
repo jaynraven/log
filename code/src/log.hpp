@@ -7,6 +7,7 @@
 #include <thread>
 #include <stdarg.h>
 #include <memory>
+#include <corecrt_io.h>
 
 
 // 定义日志级别
@@ -35,19 +36,25 @@ enum LOG_MODE
 std::string filename;
 LOG_LEVEL log_level;
 int log_mode;
+int logfile_max_size = 10 * 1024* 1024; //默认最大10mb，大于10mb只保留最新的日志
 
-void init_log(const std::string& filename_in, const int& log_mode_in, const LOG_LEVEL& log_level_in)
+void init_log(
+	const std::string& filename_in,
+	const int& log_mode_in,
+	const LOG_LEVEL& log_level_in,
+	const int& logfile_max_size_in = 10 * 1024 * 1024)
 {
-    filename = filename_in;
-    log_mode = log_mode_in;
-    log_level = log_level_in;
+	filename = filename_in;
+	log_mode = log_mode_in;
+	log_level = log_level_in;
+	logfile_max_size = logfile_max_size_in;
 }
 
 class Log {
 private:
     FILE* file_;  // 文件指针
-    // static Log* instance_;  // 单例指针
     std::mutex mtx_;  // 互斥锁
+    uint64_t file_size_;
 
     // 禁止复制构造函数
     Log(Log const&);
@@ -57,6 +64,28 @@ private:
     Log() {
         // 打开或新建日志文件
         file_ = fopen(filename.c_str(), "a");
+        file_size_ = filelength(fileno(file_));
+        int i = 0;
+    }
+
+    bool scroll_file() //删除当前目录下的.1文件，把当前文件重命名为.1
+	{
+		std::string new_filename = filename + ".1";
+        if (_access(new_filename.c_str(), 0) == 0)
+		{
+            if (remove(new_filename.c_str()) != 0)
+                return false;
+		}
+
+		fclose(file_);
+        file_ = NULL;
+        if (rename(filename.c_str(), new_filename.c_str()) == 0)
+		{
+			file_ = fopen(filename.c_str(), "a");
+			return true;
+        }
+        else
+            return false;
     }
 
 public:
@@ -128,13 +157,21 @@ public:
             file + ":" + std::to_string(line) + "] " + buffer + "\n";
 
         // 加锁
-        mtx_.lock();
+		mtx_.lock();
 
         if (log_mode & LOG_MODE_FILE)
 		{
+			if (file_size_ + logmsg.size() > logfile_max_size)
+			{
+				scroll_file();
+				file_size_ = 0;
+			}
+
 			// 写入日志
 			fwrite(logmsg.c_str(), logmsg.size(), 1, file_);
 			fflush(file_);
+
+            file_size_ += logmsg.size();
         }
         if (log_mode & LOG_MODE_TERMINAL)
         {
